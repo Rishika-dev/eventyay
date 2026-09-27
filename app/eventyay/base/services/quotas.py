@@ -26,6 +26,7 @@ from eventyay.base.models import (
     Checkin,
     Order,
     OrderPosition,
+    ProductVariation,
     Quota,
     Voucher,
     WaitingListEntry,
@@ -423,12 +424,67 @@ class QuotaAvailability:
                 qs = self._product_to_quotas[line['product_id']]
             else:
                 qs = [self._quota_objects[line['quota_id']]]
-            for q in qs:
-                if q.subevent_id == line['subevent_id']:
-                    size_left[q] -= line['free']
-                    self.count_vouchers[q] += line['free']
-                    if q not in self.results and size_left[q] <= 0:
-                        self.results[q] = Quota.AVAILABILITY_ORDERED, 0
+            self._subtract_voucher(qs, line['subevent_id'], line['free'], size_left)
+
+        self._compute_multi_product_vouchers(quotas, q_products, q_vars, size_left, now_dt, seq, func)
+
+    def _compute_multi_product_vouchers(self, quotas, q_products, q_vars, size_left, now_dt, seq, func):
+        # Vouchers limited to several products have neither product nor quota set; their scope is in
+        # limit_products / limit_variations. They block the same quotas as Voucher.clean_quota_get_ignored:
+        # those of every listed variation and of every listed product without variations.
+        product_ids = {i['product_id'] for i in q_products if self._quota_objects[i['quota_id']] in quotas}
+        variation_ids = {i['productvariation_id'] for i in q_vars if self._quota_objects[i['quota_id']] in quotas}
+        vouchers = {
+            v['id']: v
+            for v in Voucher.objects.filter(
+                Q(event_id__in={q.event_id for q in quotas})
+                & seq
+                & Q(block_quota=True)
+                & Q(product__isnull=True)
+                & Q(quota__isnull=True)
+                & Q(Q(valid_until__isnull=True) | Q(valid_until__gte=now_dt))
+                & Q(Q(limit_products__in=product_ids) | Q(limit_variations__in=variation_ids))
+            )
+            .order_by()
+            .annotate(free=Func(F('max_usages') - F('redeemed'), 0, function=func))
+            .values('id', 'subevent_id', 'free')
+            .distinct()
+        }
+        if not vouchers:
+            return
+
+        limit_products = list(
+            Voucher.limit_products.through.objects.filter(voucher_id__in=vouchers).values_list(
+                'voucher_id', 'product_id'
+            )
+        )
+        limit_variations = Voucher.limit_variations.through.objects.filter(voucher_id__in=vouchers).values_list(
+            'voucher_id', 'productvariation_id'
+        )
+        products_with_variations = set(
+            ProductVariation.objects.filter(product_id__in={p for _, p in limit_products}).values_list(
+                'product_id', flat=True
+            )
+        )
+
+        voucher_quotas = defaultdict(set)
+        for voucher_id, product_id in limit_products:
+            if product_id not in products_with_variations:
+                voucher_quotas[voucher_id].update(self._product_to_quotas[product_id])
+        for voucher_id, variation_id in limit_variations:
+            voucher_quotas[voucher_id].update(self._var_to_quotas[variation_id])
+
+        for voucher_id, qs in voucher_quotas.items():
+            v = vouchers[voucher_id]
+            self._subtract_voucher(qs, v['subevent_id'], v['free'], size_left)
+
+    def _subtract_voucher(self, qs, subevent_id, free, size_left):
+        for q in qs:
+            if q.subevent_id == subevent_id:
+                size_left[q] -= free
+                self.count_vouchers[q] += free
+                if q not in self.results and size_left[q] <= 0:
+                    self.results[q] = Quota.AVAILABILITY_ORDERED, 0
 
     def _compute_carts(self, quotas, q_products, q_vars, size_left, now_dt):
         events = {q.event_id for q in quotas}
