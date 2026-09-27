@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import pytest
 from django.core.files.base import ContentFile
+from django.urls import Resolver404, resolve
 from django.utils.timezone import now
 from django_scopes import scopes_disabled
 
@@ -50,6 +51,12 @@ def test_non_numeric_id_is_not_found(client, event):
 @pytest.mark.django_db
 def test_order_non_numeric_id_is_not_found(client, event):
     assert client.get(f'/{event.organizer.slug}/{event.slug}/order/ABCDE/abc123/answer/abc/').status_code == 404
+
+
+def test_control_route_rejects_non_numeric_id():
+    assert resolve('/control/event/dummy/dummy/orders/FOO/answer/12/').url_name == 'event.order.download.answer'
+    with pytest.raises(Resolver404):
+        resolve('/control/event/dummy/dummy/orders/FOO/answer/abc/')
 
 
 @pytest.mark.django_db
