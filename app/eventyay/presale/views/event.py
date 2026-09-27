@@ -889,7 +889,7 @@ class EventIndex(EventViewMixin, EventListMixin, CartMixin, TemplateView):
 
     def _subevent_list_context(self):
         voucher = None
-        if self.request.GET.get('voucher'):
+        if self.request.GET.get('voucher') and '\x00' not in self.request.GET.get('voucher'):
             try:
                 voucher = Voucher.objects.get(
                     code__iexact=self.request.GET.get('voucher'),

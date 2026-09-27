@@ -757,6 +757,9 @@ class WidgetAPIProductList(EventListMixin, View):
         self.voucher = None
         if 'voucher' in request.GET:
             try:
+                if '\x00' in request.GET.get('voucher'):
+                    # PostgreSQL text fields cannot contain NUL bytes, so no voucher can match.
+                    raise Voucher.DoesNotExist
                 self.voucher = request.event.vouchers.get(code__iexact=request.GET.get('voucher').strip())
                 if self.voucher.redeemed >= self.voucher.max_usages:
                     data['error'] = error_messages['voucher_redeemed']

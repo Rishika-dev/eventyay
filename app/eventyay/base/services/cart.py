@@ -615,6 +615,9 @@ class CartManager:
         if self._operations:
             raise CartError('Applying a voucher to the whole cart should not be combined with other operations.')
         try:
+            if '\x00' in voucher_code:
+                # PostgreSQL text fields cannot contain NUL bytes, so no voucher can match.
+                raise Voucher.DoesNotExist
             voucher = self.event.vouchers.get(code__iexact=voucher_code.strip())
         except Voucher.DoesNotExist:
             raise CartError(error_messages['voucher_invalid'])
@@ -708,6 +711,8 @@ class CartManager:
 
             if i.get('voucher'):
                 try:
+                    if '\x00' in i['voucher']:
+                        raise Voucher.DoesNotExist
                     voucher = self.event.vouchers.get(code__iexact=i.get('voucher').strip())
                 except Voucher.DoesNotExist:
                     raise CartError(error_messages['voucher_invalid'])

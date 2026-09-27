@@ -631,6 +631,9 @@ class RedeemView(NoSearchIndexViewMixin, EventViewMixin, TemplateView):
         if v:
             v = v.strip()
             try:
+                if '\x00' in v:
+                    # PostgreSQL text fields cannot contain NUL bytes, so no voucher can match.
+                    raise Voucher.DoesNotExist
                 self.voucher = Voucher.objects.get(code__iexact=v, event=request.event)
                 if self.voucher.redeemed >= self.voucher.max_usages:
                     err = error_messages['voucher_redeemed']
@@ -648,7 +651,7 @@ class RedeemView(NoSearchIndexViewMixin, EventViewMixin, TemplateView):
                 if v_avail < 1 and not err:
                     err = error_messages['voucher_redeemed_cart'] % (GlobalSettingsObject().settings.get('reservation_time', default=30) or 30)
             except Voucher.DoesNotExist:
-                if self.request.event.organizer.accepted_gift_cards.filter(
+                if '\x00' not in v and self.request.event.organizer.accepted_gift_cards.filter(
                     secret__iexact=request.GET.get('voucher')
                 ).exists():
                     err = error_messages['gift_card']
