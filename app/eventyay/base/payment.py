@@ -1263,6 +1263,10 @@ class GiftCardPayment(BasePaymentProvider):
         if not gift_card_code:
             messages.error(request, _('Please enter a gift card code.'))
             return
+        if '\x00' in gift_card_code:
+            # PostgreSQL text fields cannot contain NUL bytes, so no gift card or voucher can match.
+            messages.error(request, _('This gift card is not known.'))
+            return
         
         try:
             gc = self.event.organizer.accepted_gift_cards.get(secret=gift_card_code)
@@ -1352,6 +1356,10 @@ class GiftCardPayment(BasePaymentProvider):
         gift_card_code = request.POST.get('giftcard', '').strip()
         if not gift_card_code:
             messages.error(request, _('Please enter a gift card code.'))
+            return
+        if '\x00' in gift_card_code:
+            # PostgreSQL text fields cannot contain NUL bytes, so no gift card or voucher can match.
+            messages.error(request, _('This gift card is not known.'))
             return
 
         try:
