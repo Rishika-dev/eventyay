@@ -3256,6 +3256,11 @@ class SeatingTestCase(TestCase):
             '2018-01-16T15:20:00',
             datetime.datetime(2018, 1, 16, 15, 20, 0, tzinfo=ZoneInfo('Europe/Berlin')),
         ),
+        (
+            Question.TYPE_DATETIME,
+            datetime.datetime(2018, 1, 16, 15, 20, 0, tzinfo=ZoneInfo('Europe/Berlin')),
+            datetime.datetime(2018, 1, 16, 15, 20, 0, tzinfo=ZoneInfo('Europe/Berlin')),
+        ),
         (Question.TYPE_DATETIME, '2018-01-16T15:AB:CD', ValidationError),
         (Question.TYPE_DATETIME, '2018-01-16T13:20:00+01:00', ValidationError),
         (Question.TYPE_DATETIME, '2018-01-16T16:20:00+01:00', ValidationError),
