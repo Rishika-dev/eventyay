@@ -429,9 +429,6 @@ class QuotaAvailability:
         self._compute_multi_product_vouchers(quotas, q_products, q_vars, size_left, now_dt, seq, func)
 
     def _compute_multi_product_vouchers(self, quotas, q_products, q_vars, size_left, now_dt, seq, func):
-        # Vouchers limited to several products have neither product nor quota set; their scope is in
-        # limit_products / limit_variations. They block the same quotas as Voucher.clean_quota_get_ignored:
-        # those of every listed variation and of every listed product without variations.
         product_ids = {i['product_id'] for i in q_products if self._quota_objects[i['quota_id']] in quotas}
         variation_ids = {i['productvariation_id'] for i in q_vars if self._quota_objects[i['quota_id']] in quotas}
         vouchers = {
