@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 from django.test import override_settings
 from django.utils.timezone import now
-from django_scopes import scopes_disabled
+from django_scopes import scope, scopes_disabled
 
 from eventyay.base.models import Event, Order, Organizer, Team, User
 
@@ -14,24 +14,27 @@ EVENT_STATUS_PAGE = '/common/event/dummy/dummy/live/'
 
 
 @pytest.fixture
-@scopes_disabled()
 def event():
-    organizer = Organizer.objects.create(name='Dummy', slug='dummy')
-    event = Event.objects.create(organizer=organizer, name='Dummy', slug='dummy', date_from=now() + timedelta(days=30))
-    user = User.objects.create_user('dummy@dummy.dummy', 'dummy')
-    team = Team.objects.create(organizer=organizer, can_view_orders=True, can_change_event_settings=True)
-    team.members.add(user)
-    team.limit_events.add(event)
-    Order.objects.create(
-        code='FOO',
-        event=event,
-        email='dummy@dummy.test',
-        status=Order.STATUS_PAID,
-        datetime=now(),
-        expires=now() + timedelta(days=2),
-        total=Decimal('0.00'),
-        testmode=True,
-    )
+    with scopes_disabled():
+        organizer = Organizer.objects.create(name='Dummy', slug='dummy')
+        event = Event.objects.create(
+            organizer=organizer, name='Dummy', slug='dummy', date_from=now() + timedelta(days=30)
+        )
+        user = User.objects.create_user('dummy@dummy.dummy', 'dummy')
+        team = Team.objects.create(organizer=organizer, can_view_orders=True, can_change_event_settings=True)
+        team.members.add(user)
+        team.limit_events.add(event)
+    with scope(organizer=organizer):
+        Order.objects.create(
+            code='FOO',
+            event=event,
+            email='dummy@dummy.test',
+            status=Order.STATUS_PAID,
+            datetime=now(),
+            expires=now() + timedelta(days=2),
+            total=Decimal('0.00'),
+            testmode=True,
+        )
     return event
 
 
