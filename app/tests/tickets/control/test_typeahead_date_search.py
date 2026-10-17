@@ -21,11 +21,12 @@ def event():
         has_subevents=True,
     )
     event.settings.timezone = 'Asia/Kolkata'
-    subevent = event.subevents.create(
-        name='Session 1', date_from=datetime(2027, 2, 1, 9, 0, tzinfo=ZoneInfo('UTC')), active=True
-    )
-    event.quotas.create(name='Session 1 tickets', size=10, subevent=subevent)
-    event.checkin_lists.create(name='Session 1 entrance', subevent=subevent)
+    for number, day in ((1, 1), (2, 8)):
+        subevent = event.subevents.create(
+            name=f'Session {number}', date_from=datetime(2027, 2, day, 9, 0, tzinfo=ZoneInfo('UTC')), active=True
+        )
+        event.quotas.create(name=f'Session {number} tickets', size=10, subevent=subevent)
+        event.checkin_lists.create(name=f'Session {number} entrance', subevent=subevent)
     user = User.objects.create_user('dummy@dummy.dummy', 'dummy')
     team = Team.objects.create(organizer=organizer, can_view_orders=True, can_change_items=True, can_view_vouchers=True)
     team.members.add(user)
@@ -51,4 +52,7 @@ def test_searching_an_event_series_by_date(client, event, url_name):
     response = client.get(url, {'query': '2027-02-01'})
 
     assert response.status_code == 200
-    assert response.json()['results']
+    results = response.json()['results']
+    assert len(results) == 1
+    assert 'Session 1' in str(results[0])
+    assert 'Session 2' not in str(results[0])
