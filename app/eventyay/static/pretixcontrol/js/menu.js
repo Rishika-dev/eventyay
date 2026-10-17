@@ -44,11 +44,22 @@
 
                 // Toggle the classes directly instead of Bootstrap's animated collapse, so the
                 // submenu opens instantly and stays in sync with the parent's "active" state.
-                var $item = $(this).parent("li").toggleClass("active");
-                $item.children("ul").toggleClass("in", $item.hasClass("active"));
+                var item = this.parentElement;
+                var isActive = item.classList.toggle("active");
+                var submenu = item.querySelector(":scope > ul");
+                if (submenu) {
+                    submenu.classList.toggle("in", isActive);
+                }
 
                 if ($toggle) {
-                    $item.siblings().removeClass("active").children("ul.in").removeClass("in");
+                    Array.prototype.forEach.call(item.parentElement.children, function(sibling) {
+                        if (sibling === item) return;
+                        sibling.classList.remove("active");
+                        var openSubmenu = sibling.querySelector(":scope > ul.in");
+                        if (openSubmenu) {
+                            openSubmenu.classList.remove("in");
+                        }
+                    });
                 }
 
             });
