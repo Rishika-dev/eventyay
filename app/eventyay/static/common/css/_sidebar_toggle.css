@@ -1,0 +1,12 @@
+/* Sidebar submenus open and close instantly, like the video sidebar. */
+
+/* Tickets, common and admin pages: metisMenu toggles a Bootstrap 3 collapse. */
+.sidebar .nav-second-level.collapsing {
+    transition: none;
+}
+
+/* Talks pages: common/js/collapse.js toggles .show, which common/css/base.css animates. */
+.sidebar .collapse,
+.sidebar .collapse.show {
+    transition: none;
+}
