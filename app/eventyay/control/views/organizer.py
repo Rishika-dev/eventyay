@@ -287,4 +287,7 @@ class LogView(OrganizerPermissionRequiredMixin, PaginationMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data()
+        ctx['userlist'] = (
+            self.request.organizer.all_logentries().order_by().distinct().values('user__id', 'user__email')
+        )
         return ctx
