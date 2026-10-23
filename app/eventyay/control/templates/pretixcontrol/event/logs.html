@@ -26,7 +26,7 @@
                 {% for up in userlist %}
                     {% if up.user__id %}
                         <option value="{{ up.user__id }}"
-                                {% if request.GET.user == up.user__id|stringformat:"d" %}selected="selected"{% endif %}>
+                                {% if request.GET.user == up.user__id %}selected="selected"{% endif %}>
                             {{ up.user__email }}
                         </option>
                     {% endif %}
