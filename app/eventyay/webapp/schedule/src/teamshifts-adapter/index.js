@@ -196,6 +196,21 @@ export function membersUrl (eventUrl) {
 	return `${base}teamshifts/shifts/members/`
 }
 
+/**
+ * Returns the reason a TeamShifts request failed, or '' if the response has none.
+ * The API sends some errors as JSON ({detail} or {error}) and others as a plain-text body.
+ */
+export async function getErrorMessage (response) {
+	const text = (await response.text().catch(() => '')).trim()
+	try {
+		const data = JSON.parse(text)
+		return data?.detail || data?.error || ''
+	} catch {
+		// Skip HTML error pages, which are not meant to be shown in a dialog.
+		return text.startsWith('<') ? '' : text
+	}
+}
+
 function roomId (room) {
 	return room?.id ?? room
 }
