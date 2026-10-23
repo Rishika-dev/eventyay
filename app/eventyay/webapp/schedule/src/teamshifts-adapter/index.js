@@ -204,7 +204,8 @@ export async function getErrorMessage (response) {
 	const text = (await response.text().catch(() => '')).trim()
 	try {
 		const data = JSON.parse(text)
-		return data?.detail || data?.error || ''
+		const message = [data?.detail, data?.error].find(value => typeof value === 'string' && value.trim())
+		return message ? message.trim() : ''
 	} catch {
 		// Skip HTML error pages, which are not meant to be shown in a dialog.
 		return text.startsWith('<') ? '' : text

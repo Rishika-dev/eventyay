@@ -13,6 +13,7 @@ function errorResponse (body, contentType) {
 test('reads detail and error from JSON responses', async () => {
 	assert.equal(await getErrorMessage(errorResponse('{"detail": "Role capacity has been reached."}', 'application/json')), 'Role capacity has been reached.')
 	assert.equal(await getErrorMessage(errorResponse('{"error": "Invalid value"}', 'application/json')), 'Invalid value')
+	assert.equal(await getErrorMessage(errorResponse('{"detail": ["Not a string"], "error": "Invalid value"}', 'application/json')), 'Invalid value')
 })
 
 test('reads plain-text error bodies', async () => {
@@ -22,5 +23,6 @@ test('reads plain-text error bodies', async () => {
 test('returns an empty string when there is no message to show', async () => {
 	assert.equal(await getErrorMessage(errorResponse('', 'text/html')), '')
 	assert.equal(await getErrorMessage(errorResponse('{"status": "error"}', 'application/json')), '')
+	assert.equal(await getErrorMessage(errorResponse('{"detail": {"end": ["Invalid"]}, "error": " "}', 'application/json')), '')
 	assert.equal(await getErrorMessage(errorResponse('<!doctype html><title>Not Found</title>', 'text/html')), '')
 })
