@@ -207,8 +207,10 @@ export async function getErrorMessage (response) {
 		const message = [data?.detail, data?.error].find(value => typeof value === 'string' && value.trim())
 		return message ? message.trim() : ''
 	} catch {
-		// Skip HTML error pages, which are not meant to be shown in a dialog.
-		return text.startsWith('<') ? '' : text
+		// Only show short plain-text 4xx reasons. HTML pages and 5xx bodies (which can
+		// hold a DEBUG traceback) are not meant to be shown in a dialog.
+		if (response.status >= 500 || text.startsWith('<') || text.length > 300) return ''
+		return text
 	}
 }
 

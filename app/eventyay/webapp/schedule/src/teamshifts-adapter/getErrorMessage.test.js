@@ -6,8 +6,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { getErrorMessage } from './index.js'
 
-function errorResponse (body, contentType) {
-	return new Response(body, { status: 400, headers: { 'Content-Type': contentType } })
+function errorResponse (body, contentType, status = 400) {
+	return new Response(body, { status, headers: { 'Content-Type': contentType } })
 }
 
 test('reads detail and error from JSON responses', async () => {
@@ -25,4 +25,10 @@ test('returns an empty string when there is no message to show', async () => {
 	assert.equal(await getErrorMessage(errorResponse('{"status": "error"}', 'application/json')), '')
 	assert.equal(await getErrorMessage(errorResponse('{"detail": {"end": ["Invalid"]}, "error": " "}', 'application/json')), '')
 	assert.equal(await getErrorMessage(errorResponse('<!doctype html><title>Not Found</title>', 'text/html')), '')
+})
+
+test('does not show server errors or long plain-text bodies', async () => {
+	assert.equal(await getErrorMessage(errorResponse('Traceback (most recent call last):\n  File "views.py"', 'text/plain', 500)), '')
+	assert.equal(await getErrorMessage(errorResponse('Bad Gateway', 'text/plain', 502)), '')
+	assert.equal(await getErrorMessage(errorResponse('x'.repeat(301), 'text/plain')), '')
 })
