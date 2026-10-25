@@ -201,17 +201,19 @@ export function membersUrl (eventUrl) {
  * The API sends some errors as JSON ({detail} or {error}) and others as a plain-text body.
  */
 export async function getErrorMessage (response) {
+	// 5xx bodies (JSON or a plain-text DEBUG traceback) describe server failures, not
+	// something the user can fix, so the dialog keeps its generic message.
+	if (!response || response.status >= 500) return ''
 	const text = (await response.text().catch(() => '')).trim()
+	let message
 	try {
 		const data = JSON.parse(text)
-		const message = [data?.detail, data?.error].find(value => typeof value === 'string' && value.trim())
-		return message ? message.trim() : ''
+		message = [data?.detail, data?.error].find(value => typeof value === 'string' && value.trim())?.trim()
 	} catch {
-		// Only show short plain-text 4xx reasons. HTML pages and 5xx bodies (which can
-		// hold a DEBUG traceback) are not meant to be shown in a dialog.
-		if (response.status >= 500 || text.startsWith('<') || text.length > 300) return ''
-		return text
+		// HTML pages are not meant to be shown in a dialog.
+		message = text.startsWith('<') ? '' : text
 	}
+	return message && message.length <= 300 ? message : ''
 }
 
 function roomId (room) {

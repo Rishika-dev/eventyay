@@ -30,5 +30,8 @@ test('returns an empty string when there is no message to show', async () => {
 test('does not show server errors or long plain-text bodies', async () => {
 	assert.equal(await getErrorMessage(errorResponse('Traceback (most recent call last):\n  File "views.py"', 'text/plain', 500)), '')
 	assert.equal(await getErrorMessage(errorResponse('Bad Gateway', 'text/plain', 502)), '')
+	assert.equal(await getErrorMessage(errorResponse('{"detail": "Internal error: relation does not exist"}', 'application/json', 500)), '')
 	assert.equal(await getErrorMessage(errorResponse('x'.repeat(301), 'text/plain')), '')
+	assert.equal(await getErrorMessage(errorResponse(JSON.stringify({ detail: 'x'.repeat(301) }), 'application/json')), '')
+	assert.equal(await getErrorMessage(undefined), '')
 })
