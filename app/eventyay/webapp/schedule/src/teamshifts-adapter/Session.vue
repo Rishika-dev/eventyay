@@ -463,6 +463,10 @@ export default {
 			this.editError = ''
 		},
 		async saveEdit (payload) {
+			if (new Date(payload.end) <= new Date(payload.start)) {
+				this.editError = this.$t('End date must be after start date.')
+				return
+			}
 			this.editBusy = true
 			this.editError = ''
 			try {
