@@ -1,9 +1,10 @@
 from datetime import timedelta
 
 import pytest
+from django.contrib.messages import get_messages
 from django.test import override_settings
 from django.utils.timezone import now
-from django_scopes import scopes_disabled
+from django_scopes import scope, scopes_disabled
 
 from eventyay.base.models import Event, Organizer, Product, Quota
 
@@ -23,6 +24,7 @@ def event():
         )
         event.settings.payment_banktransfer__enabled = True
         event.settings.require_registered_account_for_tickets = False
+    with scope(organizer=organizer, event=event):
         product = Product.objects.create(event=event, name='Ticket', default_price=10, admission=True)
         quota = Quota.objects.create(event=event, name='Tickets', size=10)
         quota.products.add(product)
@@ -30,7 +32,7 @@ def event():
 
 
 def add_ticket_to_cart(client, event):
-    with scopes_disabled():
+    with scope(organizer=event.organizer, event=event):
         product = event.products.get()
     client.get('/dummy/dummy/')
     client.post('/dummy/dummy/cart/add', {f'item_{product.pk}': '1'})
@@ -52,7 +54,7 @@ def test_later_step_without_email_redirects_to_questions(client, event):
 
     assert response.status_code == 302
     assert response['Location'].endswith('/checkout/questions/')
-    messages = [str(m) for m in response.wsgi_request._messages]
+    messages = [str(m) for m in get_messages(response.wsgi_request)]
     assert 'Please enter a valid email address.' in messages
 
 
@@ -68,5 +70,5 @@ def test_later_step_without_attendee_name_redirects_to_questions(client, event):
 
     assert response.status_code == 302
     assert response['Location'].endswith('/checkout/questions/')
-    messages = [str(m) for m in response.wsgi_request._messages]
+    messages = [str(m) for m in get_messages(response.wsgi_request)]
     assert 'Please fill in answers to all required questions.' in messages
